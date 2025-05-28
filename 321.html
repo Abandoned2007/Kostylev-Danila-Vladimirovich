@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Учебный Чат-бот</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: #f8fafc;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .chatbot-container {
+      display: flex;
+      max-width: 900px;
+      margin: 40px auto 0 auto;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px #1675da22;
+      height: 78vh;
+      min-height: 450px;
+    }
+
+    /* Бокс со списком вопросов слева */
+    .questions-sidebar {
+      flex: 0 0 250px;
+      background: #e0f7fa;
+      border-radius: 20px 0 0 20px;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    .questions-sidebar h3 {
+      margin-top: 0;
+      font-size: 1.2em;
+      color: #1674da;
+      text-align: center;
+    }
+
+    .questions-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .question-item {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: #ffffff;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .question-item:hover {
+      background: #b3e5fc;
+    }
+
+    /* Основной блок чата */
+    .chatbot-main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      border-radius: 0 20px 20px 0;
+    }
+
+    .chatbot-header {
+      background: linear-gradient(90deg, #1674da 60%, #5befff 100%);
+      color: #fff;
+      padding: 24px 18px 14px 18px;
+      border-radius: 20px 20px 0 0;
+      font-size: 1.24em;
+      font-weight: 600;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 3px 12px #1675da15;
+    }
+    .chatbot-header svg { flex-shrink: 0; }
+
+    .chatbot-messages {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 18px;
+      background: #f9fcff;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+
+    .msg {
+      max-width: 85%;
+      padding: 13px 17px;
+      border-radius: 22px;
+      margin-bottom: 5px;
+      line-height: 1.5;
+      font-size: 1.07em;
+      box-shadow: 0 2px 7px #1675da1a;
+      word-break: break-word;
+      display: inline-block;
+      position: relative;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(110deg,#3392fe 90%,#5befff);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: #fff;
+      color: #29518d;
+      border-bottom-left-radius: 6px;
+    }
+    /* typing dots */
+    .typing {
+      padding: 11px 18px;
+      background: #eaf2fa;
+      border-radius: 24px;
+      display: inline-block;
+      min-width: 40px;
+    }
+    .typing span {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin: 0 2px;
+      background: #1674da;
+      border-radius: 50%;
+      animation: blink 1.2s infinite both;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.25s; }
+    .typing span:nth-child(3) { animation-delay: 0.5s; }
+
+    @keyframes blink {
+      0%,80%,100% { opacity: .18; }
+      40% { opacity: 1; }
+    }
+
+    /* Ввод и кнопка */
+    .chatbot-input-box {
+      display: flex;
+      padding: 0 18px 18px 18px;
+      background: #fff;
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 -2px 13px #1675da07;
+    }
+
+    .chatbot-input {
+      flex: 1 1 auto;
+      border: 1px solid #c7d5e7;
+      font-size: 1em;
+      padding: 12px 16px;
+      border-radius: 18px;
+      outline: none;
+      transition: border .15s;
+      margin-right: 10px;
+    }
+    .chatbot-input:focus {
+      border-color: #1674da;
+      background: #f3faff;
+    }
+    .chatbot-btn {
+      background: #1674da;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4em;
+      cursor: pointer;
+      transition: background .2s, box-shadow .15s;
+      box-shadow: 0 3px 10px #1675da2a;
+    }
+    .chatbot-btn:hover { background: #1956a6; }
+
+    / Адаптация /
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+      }
+      .chatbot-container {
+        flex-direction: column;
+        height: auto;
+        max-height: none;
+        min-height: auto;
+      }
+      .questions-sidebar {
+        flex: none;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        max-height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chatbot-container">
+    <!-- Панель популярных вопросов -->
+    <div class="questions-sidebar" id="questions-sidebar">
+      <h3>Что спрашивать?</h3>
+      <ul class="questions-list" id="questions-list">
+        <!-- Здесь будут вопросы -->
+        <li class="question-item">Что такое метафора?</li>
+        <li class="question-item">Как подготовиться к экзамену?</li>
+        <li class="question-item">Как выучить английские слова?</li>
+        <li class="question-item">Что такое синус?</li>
+        <li class="question-item">Как запомнить даты по истории?</li>
+        <li class="question-item">Как оформить список литературы?</li>
+        <li class="question-item">Что такое прямая речь?</li>
+        <li class="question-item">Как развить устную речь на английском?</li>
+        <li class="question-item">Что такое квадратное уравнение?</li>
+        <li class="question-item">Какие советы по запоминанию формул?</li>
+        <li class="question-item">Что значит подготовить презентацию?</li>
+        <li class="question-item">Как найти главную мысль текста?</li>
+        <li class="question-item">Что такое окружение?</li>
+        <li class="question-item">Что такое метафора?</li>
+        <li class="question-item">Как бороться с волнением?</li>
+        <li class="question-item">Что такое sine и cosine?</li>
+        <li class="question-item">Как систематизировать конспекты?</li>
+        <li class="question-item">Что такое правильное оформление списка?</li>
+        <li class="question-item">Как учить новые слова?</li>
+        <li class="question-item">Как подготовить к экзамену?</li>
+        <li class="question-item">Что такое среднее арифметическое?</li>
+        <li class="question-item">Что такое прямая речь?</li>
+        <li class="question-item">Как избавиться от волнения перед экзаменом?</li>
+        <li class="question-item">Что такое формула площади круга?</li>
+        <li class="question-item">Что такое систематизация конспектов?</li>
+        <li class="question-item">Что такое перевод слова environment?</li>
+        <li class="question-item">Как запомнить формулы?</li>
+        <li class="question-item">Как подготовиться к презентации?</li>
+        <li class="question-item">Что такое середина?</li>
+        <li class="question-item">Что такое грамматика?</li>
+        <li class="question-item">Как быстро выучить английский?</li>
+        <li class="question-item">Что такое точка?</li>
+        <li class="question-item">Как писать сочинение?</li>
+        <li class="question-item">Что такое гипотенуза?</li>
+        <li class="question-item">Что значит слово 'учебный'?</li>
+        <li class="question-item">Как научиться быстро читать?</li>
+        <li class="question-item">Что такое алгебра?</li>
+        <li class="question-item">Как подготовиться к контрольной?</li>
+      </ul>
+    </div>
+
+    <!-- Основной блок чата -->
+    <div class="chatbot-main">
+      <div class="chatbot-header">
+        <svg width="34" height="34" viewBox="00 34 34">
+          <circle cx="17" cy="17" r="17" fill="#fff" opacity="0.14"/>
+          <path d="M25 27H9c-.6 0-1-.4-1-1V8c0-.6.4-1 1-1h16c.6 0 1 .4 1 1v18c0 .6-.4 1-1 1z" fill="#1674da"/>
+          <circle cx="13" cy="15" r="1" fill="#fff"/><circle cx="17" cy="15" r="1" fill="#fff"/>
+          <circle cx="21" cy="15" r="1" fill="#fff"/>
+        </svg>
+        Учебный чат-бот
+      </div>
+
+      <div class="chatbot-messages" id="chat">
+        <!-- Сообщения появляются здесь -->
+      </div>
+      <form class="chatbot-input-box" id="bot-form" autocomplete="off">
+        <input type="text" class="chatbot-input" id="user-input" placeholder="Задайте учебный вопрос..." required maxlength="400" />
+        <button type="submit" class="chatbot-btn" title="Отправить">
+          <svg width="21" height="21" viewBox="0 0 21 21">
+            <path d="M2 10.5L19 3.5L12 19.5L10 12.5L2 10.5Z" fill="#fff"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const knowledgeBase = [
+      { q: ["привет"], a: "Здравствуйте! Я учебный чат-бот и помогу вам разобраться в учебных вопросах. Просто задайте мне вопрос!" },
+      { q: ["спасибо"], a: "Пожалуйста! Обращайтесь ещё, если возникнут вопросы." },
+      { q: ["подготовиться к экзамену по математике", "экзамен по математике"], a: "Для подготовки к экзамену по математике:<ul><li>Повторите основные формулы и теоремы</li><li>Решайте задачи из сборников и пробные варианты</li><li>Разберите ошибки</li><li>Старайтесь объяснять решения вслух</li></ul>" },
+      { q: ["быстро выучить английские слова", "английские слова", "запомнить слова"], a: "Чтобы быстро выучить английские слова, используйте ассоциации, повторяйте их с карточками (например, Anki), составляйте с ними предложения и практикуйте каждый день." },
+      { q: ["разница между инфинитивом и герундием", "инфинитив герундий"], a: "Инфинитив — это неопределённая форма глагола (to do, to go). Герундий — форма глагола с окончанием -ing (doing, going), которая чаще всего выступает как существительное. Пример: I like reading (герундий), I want to read (инфинитив)." },
+      { q: ["квадратные уравнения", "решать квадратные уравнения", "формула квадратного уравнения"], a: "Квадратное уравнение имеет вид ax²+bx+c=0. Решается по формуле: x = (-b ± √(b²-4ac)) / 2a. Найдите дискриминант D=b²-4ac, затем подставьте в формулу." },
+      { q: ["запоминать даты по истории", "запомнить даты"], a: "Для запоминания дат по истории связывайте даты с событиями, используйте ассоциации и придумайте короткие истории. Можно использовать карточки или приложения для тренировки." },
+      { q: ["формула площади круга", "площадь круга"], a: "Формула площади круга: S = π × r², где r — радиус круга." },
+      { q: ["оформить список литературы", "оформление списка литературы"], a: "Список литературы оформляется по правилам вашего учебного заведения или ГОСТ — обязательно указывайте автора, название, издательство, год издания. Пример:<br>Иванов И. И. Математика. — М.: Просвещение, 2022." },
+      { q: ["развить навыки устной речи на английском", "how to improve speaking english", "устная речь на английском"], a: "Для развития устной речи по-английски постарайтесь как можно чаще говорить — записывайте себя на диктофон, практикуйте диалоги, участвуйте в разговорах с носителями или на языковых клубах." },
+      { q: ["бороться с волнением перед экзаменом", "волнение перед экзаменом"], a: "Перед экзаменом постарайтесь глубоко дышать, сделать небольшую разминку, переключайтесь между подготовкой и отдыхом, заранее выспитесь и помните: главное — сосредоточиться на задачах, а не на волнении." },
+      { q: ["синус", "косинус", "что такое синус", "что такое косинус"], a: "Синус и косинус — это тригонометрические функции. В прямоугольном треугольнике синус угла равен отношению противолежащего катета к гипотенузе, косинус — прилежащего катета к гипотенузе." },
+      { q: ["что такое метафора", "метафора в литературе"], a: "Метафора — это скрытое сравнение, когда одно явление описывается через другое. Пример: «Золотые руки» (о человеке, который много умеет делать)." },
+      { q: ["главная мысль текста", "как распознать главную мысль", "найти основную мысль"], a: "Чтобы найти главную мысль текста, внимательно читайте, обращайте внимание на повторяющиеся темы и выводы автора. Часто главная мысль формулируется в начале или конце абзаца." },
+      { q: ["систематизировать конспекты", "как лучше систематизировать конспекты"], a: "Для систематизации конспектов используйте схемы, таблицы, выделяйте ключевые слова цветом, применяйте стикеры или ведите электронные заметки в OneNote, Notion и др." },
+      { q: ["переводится слово environment", "перевести environment", "environment перевод"], a: "Слово «environment» переводится с английского как «окружающая среда»." },
+      { q: ["способы запоминания формул", "как запоминать формулы"], a: "Чтобы легко запоминать формулы, записывайте их на карточки, повторяйте вслух, ищите логические связи, используйте ассоциации или стихи, а главное — применяйте формулы на практике." },
+      { q: ["подготовить презентацию", "как подготовить презентацию"], a: "Чтобы подготовить хорошую презентацию:<ul><li>Определите цель выступления</li><li>Разбейте материал на смысловые слайды</li><li>Используйте картинки и схемы</li><li>Репетируйте рассказ</li></ul>" },
+      { q: ["среднее арифметическое", "как рассчитывается среднее арифметическое"], a: "Среднее арифметическое находится так: сложите все числа и разделите на их количество." },
+      { q: ["написать во вступлении к сочинению", "вступление к сочинению"], a: "Во вступлении кратко обозначьте тему, объясните её актуальность, сформулируйте основную проблему или вопрос, который будете рассматривать." },
+      { q: ["прямая речь", "что значит прямая речь"], a: "Прямая речь — это дословная передача чужих слов, обычно выделяется кавычками и сопровождается словами автора. Пример: Он сказал: «Я приду вечером.»" },
+      { q: ["как не отвлекаться во время учебы", "не отвлекаться от учебы"], a: "Чтобы меньше отвлекаться во время учёбы, уберите лишние раздражители, делайте короткие перерывы, ставьте себе конкретные задачи и используйте техники Pomodoro или таймеры." },
+      { q: ["математика", "алгебра", "геометрия"], a: "Если у вас есть конкретный вопрос по математике — напишите его, и я постараюсь помочь!" },
+      { q: ["русский язык", "литература", "орфография"], a: "По русскому языку и литературе я могу объяснить правила или помочь с анализом текста. Какой у вас вопрос?" },
+      { q: ["английский", "english", "грамматика", "лексика"], a: "Я помогу с грамматикой, лексикой, переводом и написанием эссе на английском. Уточните, что именно вас интересует." },
+      { q: ["экзамен", "подготовка к экзамену", "как подготовиться"], a: "Чтобы эффективно подготовиться к экзамену:<ul><li>Составьте план занятий</li><li>Решайте задания из прошлых лет</li><li>Объясняйте материал вслух или другу</li><li>Не забывайте отдыхать</li></ul>" },
+      { q: ["как запомнить", "как учить", "советы по запоминанию"], a: "Вот несколько советов по запоминанию:<ul><li>Разбивайте материал на части</li><li>Используйте ассоциации и образы</li><li>Применяйте знания на практике</li><li>Делайте регулярные паузы</li></ul>" }
+    ];
+
+    function findAnswer(question) {
+      const query = question.replace(/[.,!?"'/\;:#-]/g, "").toLowerCase();
+      for (const pair of knowledgeBase) {
+        for (const keyword of pair.q) {
+          if (query.includes(keyword.toLowerCase())) {
+            return pair.a;
+          }
+        }
+      }
+      return "Извините, я пока не знаю ответа на этот вопрос. Попробуйте переформулировать или уточнить его!";
+    }
+
+    // DOM элементы
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('bot-form');
+    const userInput = document.getElementById('user-input');
+    const questionsList = document.getElementById('questions-list');
+
+    // Обработка кликов по вопросамdocument.querySelectorAll('.question-item').forEach(item => {
+      document.querySelectorAll('.question-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const questionText = item.textContent;
+    userInput.value = questionText;
+    form.dispatchEvent(new Event('submit'));
+  });
+});
+
+    // Автоскрол
+    function scrollChat() {
+      setTimeout(() => {
+        chat.scrollTop = chat.scrollHeight;
+      }, 120);
+    }
+
+    // Добавить сообщение
+    function addMessage(text, sender = 'bot', isHtml = false) {
+      const msg = document.createElement('div');
+      msg.className = 'msg ' + sender;
+      if (isHtml) msg.innerHTML = text;
+      else msg.textContent = text;
+      chat.appendChild(msg);
+      scrollChat();
+    }
+
+    // показать индикатор набора
+    function showTyping() {
+      const typing = document.createElement('div');
+      typing.className = 'typing msg bot';
+      typing.innerHTML = '<span></span><span></span><span></span>';
+      typing.id = 'typing-dots';
+      chat.appendChild(typing);
+      scrollChat();
+    }
+
+    function removeTyping() {
+      const typing = document.getElementById('typing-dots');
+      if (typing) chat.removeChild(typing);
+    }
+
+    // Обработка формы
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const question = userInput.value.trim();
+      if (question === "") return;
+
+      addMessage(question, 'user');
+      userInput.value = '';
+      showTyping();
+
+      setTimeout(() => {
+        removeTyping();
+        let answer = findAnswer(question);
+        let isHtml = answer.includes('<ul>') || answer.includes('<br>') || answer.includes('&laquo;');
+        addMessage(answer, 'bot', isHtml);
+      }, 700 + Math.random() * 400);
+    });
+
+    // Функция для отправки вопрос
+    function submitQuestion(questionText) {
+      addMessage(questionText, 'user');
+      showTyping();
+      setTimeout(() => {
+        removeTyping();
+        let answer = findAnswer(questionText);
+        let isHtml = answer.includes('<ul>') || answer.includes('<br>') || answer.includes('&laquo;');
+        addMessage(answer, 'bot', isHtml);
+      }, 700 + Math.random() * 400);
+    }
+  </script>
+</body>
+</html>
